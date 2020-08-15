@@ -527,7 +527,7 @@ class AzureMLCluster(Cluster):
 
         src = ScriptRunConfig(
             source_directory=os.path.join(self.abs_path, "setup"),
-            script="start_scheduler.py",
+            script="start_scheduler.py"
         )
         src.run_config.environment=self.environment_definition
         src.run_config.target=self.compute_target
