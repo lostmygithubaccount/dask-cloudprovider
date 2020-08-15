@@ -524,6 +524,14 @@ class AzureMLCluster(Cluster):
     async def __create_cluster(self):
         self.__print_message("Setting up cluster")
         exp = Experiment(self.workspace, self.experiment_name)
+
+        src = ScriptRunConfig(
+            source_directory=os.path.join(self.abs_path, "setup"),
+            script="start_scheduler.py"
+        )
+        src.run_config.environment=self.environment_definition
+        src.run_config.target=self.compute_target
+
         estimator = Estimator(
             os.path.join(self.abs_path, "setup"),
             compute_target=self.compute_target,
