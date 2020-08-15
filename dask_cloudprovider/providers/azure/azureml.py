@@ -40,7 +40,7 @@ class AzureMLCluster(Cluster):
         Defaults to ``[]``. To mount all datastores in the workspace,
         set to ``ws.datastores.values()``.
 
-    environment_definition: azureml.core.Environment (optional)
+    environment: azureml.core.Environment (optional)
         Azure ML Environment - see https://aka.ms/azureml/environments.
 
         Defaults to the "AzureML-Dask-CPU" or "AzureML-Dask-GPU" curated environment.
@@ -141,7 +141,7 @@ class AzureMLCluster(Cluster):
         self,
         workspace,
         compute_target=None,
-        environment_definition=None,
+        environment=None,
         experiment_name=None,
         initial_node_count=None,
         jupyter=None,
@@ -168,7 +168,7 @@ class AzureMLCluster(Cluster):
         self.compute_target = compute_target
 
         ### ENVIRONMENT
-        self.environment_definition = environment_definition
+        self.environment = environment
 
         ### EXPERIMENT DEFINITION
         self.experiment_name = experiment_name
@@ -214,13 +214,13 @@ class AzureMLCluster(Cluster):
         ]["vmSize"].lower()
         self.n_gpus_per_node = self.workspace_vm_sizes[self.compute_target_vm_size]
         self.use_gpu = True if self.n_gpus_per_node > 0 else False
-        if self.environment_definition is None:
+        if self.environment is None:
             if self.use_gpu:
-                self.environment_definition = self.workspace.environments[
+                self.environment = self.workspace.environments[
                     "AzureML-Dask-GPU"
                 ]
             else:
-                self.environment_definition = self.workspace.environments[
+                self.environment = self.workspace.environments[
                     "AzureML-Dask-CPU"
                 ]
 
@@ -518,17 +518,25 @@ class AzureMLCluster(Cluster):
             logger.exception(
                 "Compute target {} cannot be removed. You may need to delete it manually. {}".format(
                     self.compute_target.name, e
-                )
+                )t
             )
 
     async def __create_cluster(self):
         self.__print_message("Setting up cluster")
         exp = Experiment(self.workspace, self.experiment_name)
+
+        src = ScriptRunConfig(
+            source_directory=os.path.join(self.abs_path, "setup"),
+            script="start_scheduler.py"
+        )
+        src.run_config.environment=self.environment
+        src.run_config.target=self.compute_target
+
         estimator = Estimator(
             os.path.join(self.abs_path, "setup"),
             compute_target=self.compute_target,
             entry_script="start_scheduler.py",
-            environment_definition=self.environment_definition,
+            environment_definition=self.environment,
             script_params=self.scheduler_params,
             node_count=1,  ### start only scheduler
             distributed_training=MpiConfiguration(),
@@ -914,7 +922,7 @@ class AzureMLCluster(Cluster):
         """
         run_config = RunConfiguration()
         run_config.target = self.compute_target
-        run_config.environment = self.environment_definition
+        run_config.environment = self.environment
 
         scheduler_ip = self.run.get_metrics()["scheduler"]
         args = [
