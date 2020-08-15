@@ -527,7 +527,7 @@ class AzureMLCluster(Cluster):
 
         src = ScriptRunConfig(
             source_directory=os.path.join(self.abs_path, "setup"),
-            script="start_scheduler.py"
+            script="start_scheduler.py",
         )
         src.run_config.environment=self.environment_definition
         src.run_config.target=self.compute_target
@@ -544,7 +544,13 @@ class AzureMLCluster(Cluster):
             inputs=self.datastores,
         )
 
-        run = exp.submit(estimator, tags=self.tags)
+        print('HI CODY I AM HERE')
+        print()
+        print()
+        print()
+        print('HI AGAIN')
+
+        run = exp.submit(src, tags=self.tags)
 
         self.__print_message("Waiting for scheduler node's IP")
         status = run.get_status()
